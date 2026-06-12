@@ -1,0 +1,48 @@
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# Config
+pydantic-settings==2.6.1
+firebase-admin==6.6.0
+python-dotenv==1.0.1
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
+# Redis
+redis==5.2.0
+
+# Qdrant
+qdrant-client==1.12.0
+
+# AI / LLM (API clients used by the app)
+groq==0.28.0
+google-generativeai==0.8.3
+cerebras-cloud-sdk==1.19.0
+prometheus-fastapi-instrumentator==6.1.0
+# HTTP
+httpx==0.28.0
+aiohttp==3.11.0
+
+# Ingestion / scraping
+beautifulsoup4==4.12.3
+pdfplumber==0.11.4
+lxml==5.3.0
+tqdm==4.67.0
+
+# Utils
+python-multipart==0.0.12
+langdetect==1.0.9
+
+# RAG — local embeddings (BAAI/bge-m3). Qdrant I/O uses `qdrant-client` above.
+# LlamaIndex HF extras pin conflicting `llama-index-core` versions on PyPI; sentence-transformers is enough here.
+sentence-transformers==3.3.1
+

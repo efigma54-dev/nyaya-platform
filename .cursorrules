@@ -1,0 +1,32 @@
+You are building Nyaya — an Indian legal AI platform.
+
+STACK:
+- Backend: Python 3.12, FastAPI (async), SQLAlchemy 2.0 async, Alembic, PostgreSQL 16
+- Vector DB: Qdrant (AsyncQdrantClient)
+- Cache: Redis (redis.asyncio)
+- AI: Groq API (primary), Google Gemini (complex), LlamaIndex (RAG)
+- Embeddings: BAAI/bge-m3 via HuggingFace
+- Frontend: Next.js 15, TypeScript, Tailwind CSS v4, shadcn/ui
+- Containerization: Docker + Docker Compose
+
+RULES:
+- All database operations must be async (use AsyncSession, await)
+- Never use sync SQLAlchemy in async context
+- All endpoints return typed Pydantic response models
+- All AI responses must cite only sections that exist in the database
+- Every legal section output must include: section_number, act_name, bare_text, plain_language, is_bailable, is_cognizable
+- Use dependency injection for DB session (Depends(get_db))
+- Environment variables always via settings object from app.core.config
+- No hardcoded API keys anywhere in code
+
+PROJECT STRUCTURE:
+nyaya-platform/
+  backend/app/
+    api/routes/     ← FastAPI routers
+    core/           ← config, database, security
+    models/         ← SQLAlchemy ORM models
+    services/       ← business logic
+    rag/            ← LlamaIndex RAG pipeline
+  frontend/         ← Next.js app
+  scripts/          ← data ingestion scripts
+  data/             ← raw legal corpus files

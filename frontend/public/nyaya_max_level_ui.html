@@ -1,0 +1,492 @@
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+*{box-sizing:border-box;margin:0;padding:0}
+.shell{display:flex;height:640px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-tertiary)}
+.sidebar{width:248px;background:#0d0f14;flex-shrink:0;display:flex;flex-direction:column;border-right:0.5px solid rgba(255,255,255,0.06)}
+.s-head{padding:16px 16px 12px;border-bottom:0.5px solid rgba(255,255,255,0.06)}
+.s-logo{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.s-icon{width:30px;height:30px;background:rgba(245,158,11,0.12);border:0.5px solid rgba(245,158,11,0.25);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.s-brand{font-size:13px;font-weight:500;color:#f5f0e8;letter-spacing:.02em}
+.s-sub{font-size:10px;color:#52524d;margin-top:1px}
+.s-tagline{font-size:17px;font-weight:500;color:#f0ece3;line-height:1.3;letter-spacing:-.02em;margin-bottom:7px}
+.s-desc{font-size:11px;color:#52524d;line-height:1.55}
+.s-indexed{font-size:10px;color:rgba(245,158,11,0.45);margin-top:8px;line-height:1.4}
+.s-tags{padding:10px 16px;display:flex;flex-wrap:wrap;gap:4px;border-bottom:0.5px solid rgba(255,255,255,0.06)}
+.s-tag{font-size:10px;background:rgba(255,255,255,0.06);color:#6b6a60;padding:3px 8px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.08);letter-spacing:.01em}
+.s-body{flex:1;overflow-y:auto;padding:12px 16px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent}
+.step{background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:10px;padding:11px 12px;margin-bottom:7px;cursor:pointer;transition:background .15s,border-color .15s}
+.step:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1)}
+.step.active{background:rgba(245,158,11,0.07);border-color:rgba(245,158,11,0.2)}
+.step-n{font-size:10px;font-weight:500;color:#f59e0b;letter-spacing:.07em;margin-bottom:4px}
+.step-t{font-size:12px;font-weight:500;color:#d6d2c7;margin-bottom:3px}
+.step-d{font-size:11px;color:#52524d;line-height:1.45}
+.s-divider{border:none;border-top:0.5px solid rgba(255,255,255,0.06);margin:10px 0}
+.s-src-label{font-size:10px;color:rgba(255,255,255,0.2);letter-spacing:.06em;margin-bottom:7px}
+.s-src-link{font-size:10px;color:#52524d;display:flex;align-items:center;gap:5px;padding:3px 0;text-decoration:none;transition:color .15s}
+.s-src-link:hover{color:#9b9990}
+.s-src-more{font-size:10px;color:rgba(245,158,11,0.4);display:flex;align-items:center;gap:4px;margin-top:5px;cursor:pointer}
+.s-foot{padding:10px 16px;border-top:0.5px solid rgba(255,255,255,0.06)}
+.s-foot-row{display:flex;align-items:center;justify-content:space-between}
+.s-foot-link{font-size:11px;color:#52524d;display:flex;align-items:center;gap:5px;text-decoration:none;transition:color .15s}
+.s-foot-link:hover{color:#9b9990}
+.s-nalsa{font-size:10px;background:rgba(245,158,11,0.1);border:0.5px solid rgba(245,158,11,0.2);color:rgba(245,158,11,0.7);padding:3px 8px;border-radius:6px}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:42px;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.tb-section{font-size:10px;font-weight:500;color:#f59e0b;letter-spacing:.08em}
+.tb-sep{color:var(--color-border-secondary);font-size:14px}
+.tb-title{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.lang-pill{display:flex;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:7px;overflow:hidden}
+.lp{font-size:11px;padding:3px 9px;color:var(--color-text-secondary);cursor:pointer;transition:background .15s}
+.lp.on{background:var(--color-background-primary);color:var(--color-text-primary);font-weight:500}
+.tb-link{font-size:11px;color:var(--color-text-tertiary);text-decoration:none;display:flex;align-items:center;gap:4px;transition:color .15s}
+.tb-link:hover{color:var(--color-text-secondary)}
+.live{display:flex;align-items:center;gap:4px}
+.live-dot{width:6px;height:6px;background:#22c55e;border-radius:50%}
+.live span{font-size:11px;color:var(--color-text-tertiary)}
+
+.chat{flex:1;overflow-y:auto;padding:16px;scrollbar-width:thin;scrollbar-color:var(--color-border-tertiary) transparent}
+.chat-hint{font-size:11px;color:var(--color-text-tertiary);text-align:center;padding:8px 0 14px}
+
+.welcome{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:10px}
+.w-title{font-size:12px;font-weight:500;color:var(--color-text-primary);text-align:center;margin-bottom:2px}
+.w-sub{font-size:11px;color:var(--color-text-tertiary);text-align:center;margin-bottom:12px;line-height:1.5}
+.w-sub strong{color:var(--color-text-secondary);font-weight:500}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.cat{border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:10px 9px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--color-background-primary)}
+.cat:hover{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
+.cat-ico{font-size:18px;margin-bottom:6px;line-height:1}
+.cat-name{font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px;line-height:1.3}
+.cat-desc{font-size:10px;color:var(--color-text-tertiary);line-height:1.35;margin-bottom:5px}
+.cat-cta{font-size:10px;color:var(--color-text-tertiary);font-weight:500;letter-spacing:.04em;display:flex;align-items:center;gap:3px}
+
+.amber-box{background:#fffbf0;border:0.5px solid #f0e2b0;border-radius:var(--border-radius-md);padding:11px 14px;margin-bottom:10px}
+.amb-title{font-size:11px;font-weight:500;color:#7c6320;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.amb-link{font-size:11px;color:#8b7030;text-decoration:none;display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:0.5px solid #f0e2b0;transition:color .15s}
+.amb-link:last-child{border-bottom:none}
+.amb-link:hover{color:#5c4c15}
+.amb-more{font-size:10px;color:rgba(120,95,30,0.6);text-align:center;padding-top:6px;cursor:pointer}
+
+.disc{font-size:10px;color:var(--color-text-tertiary);text-align:center;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px;margin-bottom:4px}
+
+.emerg{background:#fff1f2;border:0.5px solid #fecdd3;border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:10px}
+.emerg-head{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.emerg-title{font-size:11px;font-weight:500;color:#be123c}
+.emerg-dismiss{margin-left:auto;cursor:pointer;color:#fca5a5;font-size:14px}
+.emerg-item{font-size:10px;color:#9f1239;padding:2px 0;line-height:1.4;display:flex;align-items:flex-start;gap:5px}
+.emerg-item::before{content:"›";font-weight:500;margin-top:0px;flex-shrink:0}
+.emerg-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.emerg-btn{font-size:10px;background:#e11d48;color:#fff;border-radius:var(--border-radius-md);padding:4px 10px;display:flex;align-items:center;gap:4px;border:none;cursor:pointer;font-family:var(--font-sans)}
+
+.msg-u{display:flex;justify-content:flex-end;margin-bottom:10px}
+.bubble-u{background:#1a1a2e;color:#e8e4da;border-radius:14px 14px 4px 14px;padding:9px 13px;font-size:12px;max-width:76%;line-height:1.55}
+.msg-a{display:flex;gap:8px;margin-bottom:10px}
+.av{width:24px;height:24px;background:#1a1a2e;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.bubble-a{flex:1;min-width:0}
+.ans{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:4px 14px 14px 14px;padding:12px 14px;font-size:12px;color:var(--color-text-primary);line-height:1.65;margin-bottom:7px}
+.ans-cursor{display:inline-block;width:2px;height:13px;background:var(--color-text-secondary);border-radius:1px;animation:blink 1s step-end infinite;vertical-align:text-bottom;margin-left:2px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.ans-meta{display:flex;align-items:center;gap:7px;margin-top:9px;padding-top:9px;border-top:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
+.m-badge{font-size:10px;padding:2px 7px;border-radius:20px;border:0.5px solid}
+.m-crim{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+.m-prov{background:var(--color-background-secondary);color:var(--color-text-tertiary);border-color:var(--color-border-tertiary)}
+.m-conf{background:#fef9c3;color:#854d0e;border-color:#fde047}
+.m-time{font-size:10px;color:var(--color-text-tertiary);margin-left:auto}
+
+.sec-list{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.sec-label{font-size:10px;color:var(--color-text-tertiary);margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.sec-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:10px 12px;transition:border-color .15s}
+.sec-card:hover{border-color:var(--color-border-secondary)}
+.sc-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+.sc-num{font-size:10px;font-family:var(--font-mono);border:0.5px solid var(--color-border-primary);border-radius:4px;padding:1px 5px;color:var(--color-text-secondary)}
+.sc-nb{font-size:10px;background:#fee2e2;color:#991b1b;border-radius:20px;padding:1px 6px}
+.sc-b{font-size:10px;background:#dcfce7;color:#166534;border-radius:20px;padding:1px 6px}
+.sc-cog{font-size:10px;background:#fff7ed;color:#9a3412;border-radius:20px;padding:1px 6px}
+.sc-act{font-size:10px;color:var(--color-text-tertiary);margin-bottom:2px}
+.sc-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.sc-plain{font-size:11px;color:var(--color-text-secondary);line-height:1.45}
+.sc-foot{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
+.sc-foot span{font-size:10px;color:var(--color-text-tertiary);display:flex;align-items:center;gap:3px}
+.sc-expand{font-size:10px;color:#3b82f6;cursor:pointer;margin-left:auto;display:flex;align-items:center;gap:3px}
+
+.bare-text{background:var(--color-background-tertiary);border:0.5px solid var(--color-border-tertiary);border-radius:7px;padding:8px 10px;margin-top:7px;font-size:10px;font-family:var(--font-mono);color:var(--color-text-secondary);line-height:1.55;display:none}
+
+.ipc-note{display:flex;align-items:center;gap:6px;background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:7px;padding:7px 10px;font-size:10px;color:var(--color-text-info);margin-top:6px}
+.low-conf{display:flex;align-items:center;gap:6px;background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);border-radius:7px;padding:7px 10px;font-size:10px;color:var(--color-text-warning);margin-top:6px}
+
+.input-wrap{background:var(--color-background-primary);border-top:0.5px solid var(--color-border-tertiary);padding:10px 16px;flex-shrink:0}
+.inp-hint{font-size:10px;color:var(--color-text-tertiary);margin-bottom:6px}
+.inp-row{display:flex;gap:7px;align-items:flex-end}
+.inp-box{flex:1;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--color-text-primary);resize:none;height:40px;font-family:var(--font-sans);outline:none;transition:border-color .15s,background .15s}
+.inp-box:focus{border-color:var(--color-border-primary);background:var(--color-background-primary)}
+.inp-send{width:36px;height:36px;background:#0d0f14;border:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s}
+.inp-send:hover{background:#1c1e28}
+.inp-foot{font-size:10px;color:var(--color-text-tertiary);text-align:center;margin-top:6px}
+
+.view{display:none}
+.view.show{display:block}
+
+.tab-row{display:flex;gap:6px;margin-bottom:12px}
+.tab-btn{font-size:11px;padding:5px 12px;border-radius:7px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;transition:all .15s;font-family:var(--font-sans)}
+.tab-btn.on{background:#0d0f14;color:#f0ece3;border-color:#0d0f14}
+
+.new-conv{font-size:10px;color:var(--color-text-tertiary);cursor:pointer;border:none;background:none;font-family:var(--font-sans);padding:0 0 8px;display:flex;align-items:center;gap:4px;transition:color .15s}
+.new-conv:hover{color:var(--color-text-secondary)}
+
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:9px;padding:7px 11px;margin-bottom:10px}
+.search-bar input{flex:1;border:none;background:none;font-size:12px;color:var(--color-text-primary);outline:none;font-family:var(--font-sans)}
+.search-bar input::placeholder{color:var(--color-text-tertiary)}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.filter-btn{font-size:10px;padding:3px 9px;border-radius:20px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;font-family:var(--font-sans);transition:all .15s}
+.filter-btn.on{background:#0d0f14;color:#f0ece3;border-color:#0d0f14}
+.filter-btn:hover:not(.on){background:var(--color-background-secondary)}
+</style>
+
+<h2 class="sr-only">Nyaya legal platform — maximum level UI showing dark sidebar, topbar with language toggle, chat interface with emergency banner, section cards with bailable/cognizable badges, and sections browser view</h2>
+
+<div class="shell">
+<div class="sidebar">
+  <div class="s-head">
+    <div class="s-logo">
+      <div class="s-icon"><i class="ti ti-scale" style="color:#f59e0b;font-size:15px" aria-hidden="true"></i></div>
+      <div>
+        <div class="s-brand">NYAYA</div>
+        <div class="s-sub">Your facts · Acts · next steps</div>
+      </div>
+    </div>
+    <div class="s-tagline">Legal clarity for every Indian household</div>
+    <div class="s-desc">Type what happened in your own words. Nyaya searches our database, explains sections plainly, and outlines next steps. Nothing is sent until you press Send.</div>
+    <div class="s-indexed">Indexed: BNS 2023 · Constitution Part III · CPA 2019 · PWDVA · IT Act · RTI Act · POCSO · POSH · NI Act §138</div>
+  </div>
+  <div class="s-tags">
+    <span class="s-tag">Database-grounded</span>
+    <span class="s-tag">Citizens &amp; lawyers</span>
+    <span class="s-tag">Official links</span>
+  </div>
+  <div class="s-body">
+    <div class="step active" onclick="this.classList.toggle('active')">
+      <div class="step-n">STEP 1</div>
+      <div class="step-t">Your narrative</div>
+      <div class="step-d">Who, what, when, outcome (eviction, refund, FIR, etc.).</div>
+    </div>
+    <div class="step" onclick="this.classList.toggle('active')">
+      <div class="step-n">STEP 2</div>
+      <div class="step-t">Eligible provisions</div>
+      <div class="step-d">Matched sections with plain notes + badges (bailable, cognizable, court).</div>
+    </div>
+    <div class="step" onclick="this.classList.toggle('active')">
+      <div class="step-n">STEP 3</div>
+      <div class="step-t">Process map</div>
+      <div class="step-d">Forums and steps — always confirm with a qualified advocate.</div>
+    </div>
+    <hr class="s-divider">
+    <div class="s-src-label">OFFICIAL SOURCES</div>
+    <a class="s-src-link" href="https://legislative.gov.in/constitution-of-india/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>Constitution of India</a>
+    <a class="s-src-link" href="https://www.indiacode.nic.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>India Code — central Bare Acts</a>
+    <a class="s-src-link" href="https://main.sci.gov.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>Supreme Court — judgments</a>
+    <a class="s-src-link" href="https://ecourts.gov.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>eCourts / High Court portals</a>
+    <div class="s-src-more"><i class="ti ti-arrow-right" style="font-size:11px" aria-hidden="true"></i>Full list: Law Commission, debates, books →</div>
+  </div>
+  <div class="s-foot">
+    <div class="s-foot-row">
+      <a class="s-foot-link" href="#" onclick="switchView('browse');return false"><i class="ti ti-book" style="font-size:13px" aria-hidden="true"></i>Browse Laws</a>
+      <div class="s-nalsa">NALSA 15100</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <span class="tb-section">NYAYA ASSISTANT</span>
+    <span class="tb-sep">·</span>
+    <span class="tb-title">Ask in plain language</span>
+    <div class="tb-right">
+      <div class="lang-pill">
+        <div class="lp on" onclick="this.classList.add('on');this.nextSibling.classList.remove('on')">EN</div>
+        <div class="lp" onclick="this.classList.add('on');this.previousSibling.classList.remove('on')">हि</div>
+      </div>
+      <a class="tb-link" href="#" onclick="switchView('browse');return false"><i class="ti ti-book" style="font-size:13px" aria-hidden="true"></i>Browse Laws</a>
+      <div class="live"><div class="live-dot"></div><span>Live</span></div>
+    </div>
+  </div>
+
+  <div class="chat" id="chat-scroll">
+
+    <div id="view-home" class="view show">
+      <div class="chat-hint">Type below — or tap an example to paste text you can edit before sending.</div>
+      <div class="welcome">
+        <div class="w-title">Example starters (not auto-sent)</div>
+        <div class="w-sub">Tap one to <strong>insert text below</strong> — edit to match your facts, then press <strong>Send</strong>. Nothing is sent until you choose.</div>
+        <div class="cat-grid">
+          <div class="cat" onclick="startChat('Someone attacked me and I got injured. What sections apply?')">
+            <div class="cat-ico">⚖️</div>
+            <div class="cat-name">Criminal Law</div>
+            <div class="cat-desc">Murder, theft, assault, fraud, rape</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('Police arrested me without telling me the reason. What are my rights?')">
+            <div class="cat-ico">📜</div>
+            <div class="cat-name">Constitutional Rights</div>
+            <div class="cat-desc">Fundamental rights, arrest, detention</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('I bought a phone that stopped working after 2 days. Company refuses refund.')">
+            <div class="cat-ico">🛒</div>
+            <div class="cat-name">Consumer Rights</div>
+            <div class="cat-desc">Defective goods, refunds, complaints</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('My husband and his family are harassing me for dowry.')">
+            <div class="cat-ico">👨‍👩‍👧</div>
+            <div class="cat-name">Family &amp; Marriage</div>
+            <div class="cat-desc">Divorce, dowry, domestic violence</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('My landlord is threatening to throw me out without notice.')">
+            <div class="cat-ico">🏠</div>
+            <div class="cat-name">Property Law</div>
+            <div class="cat-desc">Land disputes, tenants, eviction</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('My employer fired me without notice or reason.')">
+            <div class="cat-ico">💼</div>
+            <div class="cat-name">Labour &amp; Employment</div>
+            <div class="cat-desc">Termination, unpaid wages</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('Someone is blackmailing me using my private photos on WhatsApp.')">
+            <div class="cat-ico">💻</div>
+            <div class="cat-name">Cyber Crime</div>
+            <div class="cat-desc">Online fraud, harassment, extortion</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+          <div class="cat" onclick="startChat('How do I file an RTI application?')">
+            <div class="cat-ico">📚</div>
+            <div class="cat-name">Other Laws</div>
+            <div class="cat-desc">RTI, environment, tax, IPR</div>
+            <div class="cat-cta"><i class="ti ti-arrow-right" style="font-size:10px" aria-hidden="true"></i>Insert example</div>
+          </div>
+        </div>
+      </div>
+      <div class="amber-box">
+        <div class="amb-title"><i class="ti ti-building-bank" style="font-size:13px" aria-hidden="true"></i>Official &amp; academic sources</div>
+        <a class="amb-link" href="https://legislative.gov.in/constitution-of-india/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>Constitution of India (official text)</a>
+        <a class="amb-link" href="https://www.indiacode.nic.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>India Code — central Bare Acts</a>
+        <a class="amb-link" href="https://main.sci.gov.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>Supreme Court of India — judgments</a>
+        <a class="amb-link" href="https://ecourts.gov.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>eCourts / High Court portals</a>
+        <a class="amb-link" href="https://lawcommissionofindia.nic.in/" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link" style="font-size:11px;flex-shrink:0" aria-hidden="true"></i>Law Commission of India — reports</a>
+        <div class="amb-more">Full list: courts, Law Commission, debates, books &amp; roadmap →</div>
+      </div>
+      <div class="disc">Nyaya shares legal information, not legal advice. Consult a qualified advocate for your situation.</div>
+    </div>
+
+    <div id="view-chat" class="view">
+      <button class="new-conv" onclick="switchView('home')"><i class="ti ti-arrow-left" style="font-size:12px" aria-hidden="true"></i>New conversation</button>
+
+      <div class="emerg" id="emerg-block">
+        <div class="emerg-head">
+          <i class="ti ti-alert-triangle" style="color:#be123c;font-size:13px" aria-hidden="true"></i>
+          <div class="emerg-title">You are being arrested — your rights right now</div>
+          <div class="emerg-dismiss" onclick="document.getElementById('emerg-block').style.display='none'" aria-label="Dismiss"><i class="ti ti-x" aria-hidden="true"></i></div>
+        </div>
+        <div class="emerg-item">DEMAND to know why you are being arrested (Article 22 — Constitution)</div>
+        <div class="emerg-item">You have the RIGHT to call a lawyer immediately</div>
+        <div class="emerg-item">Police MUST produce you before a magistrate within 24 hours</div>
+        <div class="emerg-item">Do NOT sign anything without a lawyer present</div>
+        <div class="emerg-btns">
+          <button class="emerg-btn"><i class="ti ti-phone" style="font-size:10px" aria-hidden="true"></i>NALSA 15100</button>
+          <button class="emerg-btn"><i class="ti ti-phone" style="font-size:10px" aria-hidden="true"></i>Police 100</button>
+          <button class="emerg-btn"><i class="ti ti-phone" style="font-size:10px" aria-hidden="true"></i>NHRC 14433</button>
+        </div>
+      </div>
+
+      <div class="msg-u">
+        <div class="bubble-u" id="user-query">Police arrested me without telling me the reason. What are my rights?</div>
+      </div>
+
+      <div class="msg-a">
+        <div class="av"><i class="ti ti-scale" style="color:#f59e0b;font-size:11px" aria-hidden="true"></i></div>
+        <div class="bubble-a">
+          <div class="ans" id="ans-text">
+            <strong>Direct answer:</strong> When arrested, you have the constitutional right to be told the grounds of arrest immediately (Article 22), the right to a lawyer, and the right to be produced before a magistrate within 24 hours.<br><br>
+            <strong>Applicable laws:</strong><br>
+            — Article 22 (Constitution): Right against arbitrary arrest. Police must inform you of the reason for arrest. You may not be detained beyond 24 hours without magistrate authority.<br>
+            — Article 21 (Constitution): No person shall be deprived of life or personal liberty except by procedure established by law.<br><br>
+            <strong>What you should do:</strong><br>
+            1. Calmly ask the arresting officer: "What are the grounds of my arrest?"<br>
+            2. Immediately request to call your lawyer or a family member.<br>
+            3. Remember or write down the arresting officer's name and badge number.<br>
+            4. Do not sign any document before consulting a lawyer.<br><br>
+            <strong>Important:</strong> If police refuse to state the reason or deny access to a lawyer, that is a constitutional violation. File a complaint with the State Human Rights Commission or approach the High Court under Article 226.<br><br>
+            ⚠️ This is legal information only, not legal advice. Consult a qualified advocate. Free legal aid: NALSA 15100.
+          </div>
+
+          <div class="ipc-note"><i class="ti ti-info-circle" style="font-size:12px;flex-shrink:0" aria-hidden="true"></i>BNS 2023 equivalents shown where applicable. IPC was replaced by BNS effective July 1, 2024.</div>
+
+          <div style="margin-top:8px">
+            <div class="sec-label"><i class="ti ti-files" style="font-size:11px" aria-hidden="true"></i>3 relevant sections found:</div>
+            <div class="sec-list">
+              <div class="sec-card">
+                <div class="sc-top"><span class="sc-num">§ 22</span><span class="sc-b">Constitutional right</span></div>
+                <div class="sc-act">Constitution of India — Fundamental Rights</div>
+                <div class="sc-title">Protection against arrest and detention</div>
+                <div class="sc-plain">When arrested: must be told WHY immediately. Right to a lawyer. Must be produced before magistrate within 24 hours. Police cannot detain longer without magistrate authority.</div>
+                <div class="sc-foot">
+                  <span><i class="ti ti-building" style="font-size:11px" aria-hidden="true"></i>Magistrate Court / High Court</span>
+                  <div class="sc-expand" onclick="toggleBare('bare1',this)"><i class="ti ti-file-text" style="font-size:10px" aria-hidden="true"></i>Bare act text</div>
+                </div>
+                <div class="bare-text" id="bare1">No person who is arrested shall be detained in custody without being informed, as soon as may be, of the grounds for such arrest nor shall he be denied the right to consult, and to be defended by, a legal practitioner of his choice. Every person who is arrested and detained in custody shall be produced before the nearest magistrate within a period of twenty-four hours of such arrest...</div>
+              </div>
+              <div class="sec-card">
+                <div class="sc-top"><span class="sc-num">§ 21</span><span class="sc-b">Constitutional right</span></div>
+                <div class="sc-act">Constitution of India — Fundamental Rights</div>
+                <div class="sc-title">Protection of life and personal liberty</div>
+                <div class="sc-plain">Nobody can be arrested or detained except by fair legal process. This is the most fundamental right — it underlies every other liberty.</div>
+                <div class="sc-foot">
+                  <span><i class="ti ti-building" style="font-size:11px" aria-hidden="true"></i>Supreme Court (Article 32)</span>
+                  <div class="sc-expand" onclick="toggleBare('bare2',this)"><i class="ti ti-file-text" style="font-size:10px" aria-hidden="true"></i>Bare act text</div>
+                </div>
+                <div class="bare-text" id="bare2">No person shall be deprived of his life or personal liberty except according to procedure established by law.</div>
+              </div>
+              <div class="sec-card">
+                <div class="sc-top"><span class="sc-num">§ 32</span><span class="sc-b">Constitutional right</span></div>
+                <div class="sc-act">Constitution of India — Fundamental Rights</div>
+                <div class="sc-title">Right to constitutional remedies</div>
+                <div class="sc-plain">If any fundamental right is violated, you can directly approach the Supreme Court. This is itself a fundamental right — Dr. Ambedkar called it the "heart and soul" of the Constitution.</div>
+                <div class="sc-foot">
+                  <span><i class="ti ti-building" style="font-size:11px" aria-hidden="true"></i>Supreme Court of India</span>
+                  <div class="sc-expand" onclick="toggleBare('bare3',this)"><i class="ti ti-file-text" style="font-size:10px" aria-hidden="true"></i>Bare act text</div>
+                </div>
+                <div class="bare-text" id="bare3">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed. The Supreme Court shall have power to issue directions or orders or writs, including writs in the nature of habeas corpus, mandamus, prohibition, quo warranto and certiorari...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ans-meta">
+            <span class="m-badge m-crim">Constitutional law</span>
+            <span class="m-badge m-prov">groq / llama-3.3-70b</span>
+            <span class="m-time">4.2s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-browse" class="view">
+      <div class="tab-row">
+        <button class="tab-btn on" onclick="setTab(this,'tab-acts')">Acts</button>
+        <button class="tab-btn" onclick="setTab(this,'tab-sections')">Sections</button>
+      </div>
+      <div class="search-bar">
+        <i class="ti ti-search" style="font-size:14px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+        <input placeholder="Search acts, sections, keywords..." />
+        <i class="ti ti-adjustments-horizontal" style="font-size:14px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+      </div>
+      <div class="filter-row" id="tab-acts">
+        <button class="filter-btn on" onclick="toggleFilter(this)">All</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Criminal</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Family</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Consumer</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Constitutional</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Cyber</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Labour</button>
+      </div>
+      <div id="tab-sections" style="display:none" class="filter-row">
+        <button class="filter-btn on" onclick="toggleFilter(this)">All sections</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Non-bailable</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Bailable</button>
+        <button class="filter-btn" onclick="toggleFilter(this)">Cognizable</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        <div class="sec-card" style="cursor:pointer" onclick="switchView('chat')">
+          <div class="sc-top"><span class="m-badge m-crim" style="font-size:10px">Criminal</span></div>
+          <div class="sc-act" style="margin-top:4px">Bharatiya Nyaya Sanhita 2023</div>
+          <div class="sc-title" style="font-size:11px">BNS 2023</div>
+          <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">19 sections indexed</div>
+        </div>
+        <div class="sec-card" style="cursor:pointer">
+          <div class="sc-top"><span class="m-badge" style="font-size:10px;background:#ede9fe;color:#5b21b6;border-color:#c4b5fd">Constitutional</span></div>
+          <div class="sc-act" style="margin-top:4px">Constitution of India</div>
+          <div class="sc-title" style="font-size:11px">Part III — Fundamental Rights</div>
+          <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">9 articles indexed</div>
+        </div>
+        <div class="sec-card" style="cursor:pointer">
+          <div class="sc-top"><span class="m-badge" style="font-size:10px;background:#dbeafe;color:#1e40af;border-color:#93c5fd">Consumer</span></div>
+          <div class="sc-act" style="margin-top:4px">Consumer Protection Act</div>
+          <div class="sc-title" style="font-size:11px">CPA 2019</div>
+          <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">5 sections indexed</div>
+        </div>
+        <div class="sec-card" style="cursor:pointer">
+          <div class="sc-top"><span class="m-badge" style="font-size:10px;background:#fce7f3;color:#9d174d;border-color:#f9a8d4">Family</span></div>
+          <div class="sc-act" style="margin-top:4px">Protection of Women from DV Act</div>
+          <div class="sc-title" style="font-size:11px">PWDVA 2005</div>
+          <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">5 sections indexed</div>
+        </div>
+        <div class="sec-card" style="cursor:pointer">
+          <div class="sc-top"><span class="m-badge" style="font-size:10px;background:#dcfce7;color:#166534;border-color:#86efac">Constitutional</span></div>
+          <div class="sc-act" style="margin-top:4px">Right to Information Act</div>
+          <div class="sc-title" style="font-size:11px">RTI Act 2005</div>
+          <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">5 sections indexed</div>
+        </div>
+        <div class="sec-card" style="cursor:pointer">
+          <div class="sc-top"><span class="m-badge" style="font-size:10px;background:#fef3c7;color:#92400e;border-color:#fcd34d">Cyber</span></div>
+          <div class="sc-act" style="margin-top:4px">Information Technology Act</div>
+          <div class="sc-title" style="font-size:11px">IT Act 2000</div>
+          <div style="font-size:10px;color:var(--color-text-tertiary);margin-top:4px">6 sections indexed</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="input-wrap">
+    <div class="inp-hint" id="inp-hint">Hindi or English · multiline · Enter to send · Shift+Enter for new line</div>
+    <div class="inp-row">
+      <textarea class="inp-box" id="main-inp" placeholder="Describe your situation... Who did what, when, and what you want to know." rows="1"></textarea>
+      <button class="inp-send" onclick="sendFromInput()" aria-label="Send message">
+        <i class="ti ti-send" style="color:#f5f3ee;font-size:14px" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="inp-foot">Enter sends · Shift+Enter new line · Examples are drafts until you edit &amp; send</div>
+  </div>
+</div>
+</div>
+
+<script>
+function switchView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
+  document.getElementById('view-' + id).classList.add('show');
+  var hints = {home:'Hindi or English · multiline · Enter to send · Shift+Enter for new line', chat:'Follow-up or describe a new aspect of your situation', browse:'Search acts, sections, keywords across the legal database'};
+  document.getElementById('inp-hint').textContent = hints[id] || hints.home;
+  document.getElementById('main-inp').placeholder = id === 'chat' ? 'Ask a follow-up...' : 'Describe your situation... Who did what, when, and what you want to know.';
+  document.getElementById('chat-scroll').scrollTop = 0;
+}
+function startChat(q) {
+  document.getElementById('user-query').textContent = q;
+  document.getElementById('emerg-block').style.display = 'block';
+  switchView('chat');
+}
+function sendFromInput() {
+  var v = document.getElementById('main-inp').value.trim();
+  if (v) { startChat(v); document.getElementById('main-inp').value = ''; }
+}
+function toggleBare(id, btn) {
+  var el = document.getElementById(id);
+  var showing = el.style.display === 'block';
+  el.style.display = showing ? 'none' : 'block';
+  btn.innerHTML = (showing ? '<i class="ti ti-file-text" style="font-size:10px" aria-hidden="true"></i>Bare act text' : '<i class="ti ti-chevron-up" style="font-size:10px" aria-hidden="true"></i>Hide text');
+}
+function setTab(btn, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('tab-acts').style.display = tabId === 'tab-acts' ? 'flex' : 'none';
+  document.getElementById('tab-sections').style.display = tabId === 'tab-sections' ? 'flex' : 'none';
+}
+function toggleFilter(btn) {
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+document.getElementById('main-inp').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFromInput(); }
+});
+</script>

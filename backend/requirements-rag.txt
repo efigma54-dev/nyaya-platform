@@ -1,0 +1,4 @@
+# Merged into backend/requirements.txt — kept for reference only.
+# llama-index==0.12.0
+# llama-index-vector-stores-qdrant==0.1.4
+# llama-index-embeddings-huggingface==0.3.1

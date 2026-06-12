@@ -1,0 +1,36 @@
+# Environment & secrets
+.env
+.env.local
+*.env
+*.json
+KEYS.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.pyc
+
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Docker volumes
+postgres_data/
+qdrant_data/
+redis_data/
+
+# IDE
+.cursor/
+.vscode/
+*.DS_Store
+
+# Logs
+logs/
+*.log
