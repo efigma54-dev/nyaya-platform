@@ -151,8 +151,9 @@ def build_context(retrieved: list[dict]) -> str:
         if sec_num in BNS_TO_IPC:
             ipc_note = f" (replaces IPC Section {BNS_TO_IPC[sec_num]})"
 
+        act_title = p.get('act_title') or 'Unknown Act'
         lines += [
-            f"--- [{i}] {p.get('act_title')} § {sec_num}{ipc_note} ---",
+            f"--- [{i}] {act_title} § {sec_num}{ipc_note} ---",
             f"Title: {p.get('section_title', '')}",
             f"Text: {p.get('bare_text', '')}",
             f"Plain: {p.get('plain_language', '')}",
@@ -178,6 +179,30 @@ def resolve_response_lang(query: str, lang: str) -> str:
         except Exception:
             pass
     return lang if lang in ("en", "hi") else "en"
+
+
+async def enrich_retrieved_sections_with_act_title(retrieved: list[dict]) -> None:
+    """Ensure retrieved section payloads have act_title for downstream responses."""
+    if not retrieved:
+        return
+
+    try:
+        async with AsyncSessionLocal() as db:
+            for r in retrieved:
+                p = r.get("payload", {})
+                act_id = p.get("act_id")
+                if not p.get("act_title") and act_id:
+                    try:
+                        act_id_int = int(act_id)
+                    except (TypeError, ValueError):
+                        act_id_int = act_id
+                    res = await db.execute(select(Act).where(Act.id == act_id_int))
+                    act = res.scalar_one_or_none()
+                    if act:
+                        p["act_title"] = act.short_title
+                        logger.info("Enriched payload act_title for act_id=%s -> %s", act_id, act.short_title)
+    except Exception as e:
+        logger.warning("Act enrichment failed: %s", e)
 
 
 async def answer_query(
@@ -234,25 +259,8 @@ async def answer_query(
                 state=detected_state,
             )
         retrieved = prioritize_domestic_sections(query, retrieved)[:top_k]
+        await enrich_retrieved_sections_with_act_title(retrieved)
 
-        # If Qdrant payloads lack `act_title`, enrich from DB so reporting shows act names.
-        try:
-            async with AsyncSessionLocal() as db:
-                for r in retrieved:
-                    p = r.get("payload", {})
-                    act_id = p.get("act_id")
-                    if not p.get("act_title") and act_id:
-                        try:
-                            act_id_int = int(act_id)
-                        except Exception:
-                            act_id_int = act_id
-                        res = await db.execute(select(Act).where(Act.id == act_id_int))
-                        act = res.scalar_one_or_none()
-                        if act:
-                            p["act_title"] = act.short_title
-                            logger.info("Enriched payload act_title for act_id=%s -> %s", act_id, act.short_title)
-        except Exception as e:
-            logger.warning("Act enrichment failed: %s", e)
     except Exception as e:
         logger.error("RAG retrieval failed: %s\n%s", e, traceback.format_exc())
         retrieved = []

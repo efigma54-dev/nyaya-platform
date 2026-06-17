@@ -48,6 +48,7 @@ async def embed_sections():
                         "section_number": section.section_number,
                         "section_title": section.section_title,
                         "act_id": section.act_id,
+                        "act_title": section.act.short_title if hasattr(section, "act") and section.act else None,
                         "bare_text": section.bare_text[:500],  # Truncate for storage
                         "plain_language": section.plain_language[:500],
                         "is_bailable": section.is_bailable,

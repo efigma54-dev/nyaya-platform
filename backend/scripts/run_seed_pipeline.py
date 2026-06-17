@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal, engine
 from app.models.legal import Base
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, join
 from app.models.legal import Act, Section
 from app.rag.embedder import embed_text
 from app.rag.vector_store import insert_sections_to_qdrant, get_qdrant_client, COLLECTION_NAME
@@ -44,47 +44,61 @@ async def embed_all_sections():
     print("🔄 Embedding sections into Qdrant...")
     
     async with AsyncSessionLocal() as db:
-        # Get all active sections
+        # Get all active sections with act_title via join (no relationship lazy loading)
         result = await db.execute(
-            select(Section).where(Section.is_active == True).order_by(Section.id)
+            select(
+                Section.id,
+                Section.act_id,
+                Section.section_number,
+                Section.section_title,
+                Section.bare_text,
+                Section.plain_language,
+                Section.is_bailable,
+                Section.is_cognizable,
+                Section.punishment_summary,
+                Act.short_title.label('act_title')
+            )
+            .outerjoin(Act, Section.act_id == Act.id)
+            .where(Section.is_active == True)
+            .order_by(Section.id)
         )
-        sections = result.scalars().all()
+        rows = result.all()
         
-        if not sections:
+        if not rows:
             print("⚠️  No sections to embed")
             return
         
-        print(f"  Found {len(sections)} sections to embed")
+        print(f"  Found {len(rows)} sections to embed")
         
         # Batch embed and insert
         batch_size = 10
-        for i in range(0, len(sections), batch_size):
-            batch = sections[i:i+batch_size]
+        for i in range(0, len(rows), batch_size):
+            batch = rows[i:i+batch_size]
             embeddings = []
             section_dicts = []
             
-            for section in batch:
+            for row in batch:
                 # Create embedding
-                text_to_embed = f"{section.section_title} {section.plain_language}"
+                text_to_embed = f"{row.section_title} {row.plain_language}"
                 try:
                     embedding = await asyncio.to_thread(embed_text, text_to_embed)
                     embeddings.append(embedding)
                     
                     section_dict = {
-                        "id": section.id,
-                        "section_number": section.section_number,
-                        "act_title": section.act.short_title if hasattr(section, 'act') and section.act else None,
-                        "section_title": section.section_title,
-                        "act_id": section.act_id,
-                        "bare_text": section.bare_text,
-                        "plain_language": section.plain_language,
-                        "is_bailable": section.is_bailable,
-                        "is_cognizable": section.is_cognizable,
-                        "punishment_summary": section.punishment_summary,
+                        "id": row.id,
+                        "section_number": row.section_number,
+                        "act_title": row.act_title,
+                        "section_title": row.section_title,
+                        "act_id": row.act_id,
+                        "bare_text": row.bare_text,
+                        "plain_language": row.plain_language,
+                        "is_bailable": row.is_bailable,
+                        "is_cognizable": row.is_cognizable,
+                        "punishment_summary": row.punishment_summary,
                     }
                     section_dicts.append(section_dict)
                 except Exception as e:
-                    print(f"  ⚠️  Failed to embed section {section.section_number}: {e}")
+                    print(f"  ⚠️  Failed to embed section {row.section_number}: {e}")
                     continue
             
             if embeddings:
@@ -99,7 +113,7 @@ async def embed_all_sections():
                         embeddings
                     )
 
-                    print(f"  ✅ Embedded batch {i//batch_size + 1}/{(len(sections)-1)//batch_size + 1}")
+                    print(f"  ✅ Embedded batch {i//batch_size + 1}/{(len(rows)-1)//batch_size + 1}")
                 except Exception as e:
                     print(f"  ❌ Failed to insert batch: {e}")
         
