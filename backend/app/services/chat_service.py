@@ -19,8 +19,9 @@ from app.rag.vector_store import search_sections
 from app.services.ai_router import route_and_call, decide_route
 from app.services.emergency import detect_emergency
 from app.core.database import AsyncSessionLocal
+import re
 from sqlalchemy import select
-from app.models.legal import Act
+from app.models.legal import Act, Section
 
 # ── IPC → BNS Transition Map ─────────────────────────────────
 IPC_TO_BNS = {
@@ -242,6 +243,34 @@ async def answer_query(
 
     # RAG retrieval (isolated — empty Qdrant should not block AI)
     try:
+        # Quick direct lookup: if user asked for a specific section number, return it immediately.
+        match = re.search(r"\bsection\s+(\d+)\b", query.lower())
+        if match:
+            section_no = match.group(1)
+            try:
+                async with AsyncSessionLocal() as db:
+                    res = await db.execute(select(Section).where(Section.section_number == section_no))
+                    section = res.scalar_one_or_none()
+                    if section:
+                        payload = {
+                            "id": section.id,
+                            "section_number": section.section_number,
+                            "section_title": section.section_title,
+                            "act_id": section.act_id,
+                            "act_title": section.act.short_title if hasattr(section, "act") and section.act else None,
+                            "bare_text": section.bare_text,
+                            "plain_language": section.plain_language,
+                            "is_bailable": section.is_bailable,
+                            "is_cognizable": section.is_cognizable,
+                            "punishment_summary": section.punishment_summary,
+                        }
+                        retrieved = [{"payload": payload, "score": 1.0}]
+                        await enrich_retrieved_sections_with_act_title(retrieved)
+                        # Skip vector search since we have a direct hit
+                        raise StopAsyncIteration
+            except StopAsyncIteration:
+                # used to short-circuit out to the outer flow with retrieved populated
+                pass
         query_vector = await asyncio.to_thread(embed_text, enhanced_query)
         retrieved = await asyncio.to_thread(
             search_sections,
