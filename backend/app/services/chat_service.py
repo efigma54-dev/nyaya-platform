@@ -250,7 +250,7 @@ async def answer_query(
                         act = res.scalar_one_or_none()
                         if act:
                             p["act_title"] = act.short_title
-                            logger.debug("Enriched payload act_title for act_id=%s -> %s", act_id, act.short_title)
+                            logger.info("Enriched payload act_title for act_id=%s -> %s", act_id, act.short_title)
         except Exception as e:
             logger.warning("Act enrichment failed: %s", e)
     except Exception as e:
