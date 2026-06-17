@@ -240,11 +240,17 @@ async def answer_query(
             async with AsyncSessionLocal() as db:
                 for r in retrieved:
                     p = r.get("payload", {})
-                    if not p.get("act_title") and p.get("act_id"):
-                        res = await db.execute(select(Act).where(Act.id == p.get("act_id")))
+                    act_id = p.get("act_id")
+                    if not p.get("act_title") and act_id:
+                        try:
+                            act_id_int = int(act_id)
+                        except Exception:
+                            act_id_int = act_id
+                        res = await db.execute(select(Act).where(Act.id == act_id_int))
                         act = res.scalar_one_or_none()
                         if act:
                             p["act_title"] = act.short_title
+                            logger.debug("Enriched payload act_title for act_id=%s -> %s", act_id, act.short_title)
         except Exception as e:
             logger.warning("Act enrichment failed: %s", e)
     except Exception as e:
