@@ -90,12 +90,14 @@ async def embed_all_sections():
                 try:
                     # Insert batch to Qdrant
                     client = get_qdrant_client()
+
                     await asyncio.to_thread(
                         insert_sections_to_qdrant,
                         client,
                         section_dicts,
                         embeddings
                     )
+
                     print(f"  ✅ Embedded batch {i//batch_size + 1}/{(len(sections)-1)//batch_size + 1}")
                 except Exception as e:
                     print(f"  ❌ Failed to insert batch: {e}")
