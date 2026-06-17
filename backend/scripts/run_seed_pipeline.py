@@ -89,8 +89,10 @@ async def embed_all_sections():
             if embeddings:
                 try:
                     # Insert batch to Qdrant
+                    client = get_qdrant_client()
                     await asyncio.to_thread(
                         insert_sections_to_qdrant,
+                        client,
                         section_dicts,
                         embeddings
                     )
