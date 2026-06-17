@@ -18,6 +18,9 @@ from app.rag.embedder import embed_text
 from app.rag.vector_store import search_sections
 from app.services.ai_router import route_and_call, decide_route
 from app.services.emergency import detect_emergency
+from app.core.database import AsyncSessionLocal
+from sqlalchemy import select
+from app.models.legal import Act
 
 # ── IPC → BNS Transition Map ─────────────────────────────────
 IPC_TO_BNS = {
@@ -231,6 +234,19 @@ async def answer_query(
                 state=detected_state,
             )
         retrieved = prioritize_domestic_sections(query, retrieved)[:top_k]
+
+        # If Qdrant payloads lack `act_title`, enrich from DB so reporting shows act names.
+        try:
+            async with AsyncSessionLocal() as db:
+                for r in retrieved:
+                    p = r.get("payload", {})
+                    if not p.get("act_title") and p.get("act_id"):
+                        res = await db.execute(select(Act).where(Act.id == p.get("act_id")))
+                        act = res.scalar_one_or_none()
+                        if act:
+                            p["act_title"] = act.short_title
+        except Exception as e:
+            logger.warning("Act enrichment failed: %s", e)
     except Exception as e:
         logger.error("RAG retrieval failed: %s\n%s", e, traceback.format_exc())
         retrieved = []

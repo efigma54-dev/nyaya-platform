@@ -73,7 +73,6 @@ async def embed_all_sections():
                     section_dict = {
                         "id": section.id,
                         "section_number": section.section_number,
-                        "act_title": section.act.short_title if hasattr(section, 'act') and section.act else None,
                         "section_title": section.section_title,
                         "act_id": section.act_id,
                         "bare_text": section.bare_text,
