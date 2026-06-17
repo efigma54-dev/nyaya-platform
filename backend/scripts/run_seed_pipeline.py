@@ -120,8 +120,8 @@ async def embed_all_sections():
         # Verify
         try:
             client = get_qdrant_client()
-            vector_count = client.get_collection(COLLECTION_NAME).vectors_count
-            print(f"✅ Embedded {vector_count} sections into Qdrant")
+            info = client.get_collection(COLLECTION_NAME)
+            print(f"✅ Embedded {info.points_count} sections into Qdrant")
         except Exception as e:
             print(f"⚠️  Could not verify embeddings: {e}")
 
