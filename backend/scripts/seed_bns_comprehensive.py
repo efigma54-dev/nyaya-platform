@@ -1,11 +1,24 @@
 import asyncio
+import json
+from pathlib import Path
+
 from sqlalchemy import select, func
+
 from app.core.database import AsyncSessionLocal
 from app.models.legal import Act, Section
 
-BNS_SECTIONS = [
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DATA_FILES = ["bns.json", "bnss.json", "bsa.json"]
+
+DEFAULT_BNS_SECTIONS = [
     {
-        "act": {"short_title": "Bharatiya Nyaya Sanhita 2023", "full_title": "The Bharatiya Nyaya Sanhita, 2023", "year": 2023, "act_type": "CENTRAL", "category": "CRIMINAL"},
+        "act": {
+            "short_title": "Bharatiya Nyaya Sanhita 2023",
+            "full_title": "The Bharatiya Nyaya Sanhita, 2023",
+            "year": 2023,
+            "act_type": "CENTRAL",
+            "category": "CRIMINAL",
+        },
         "sections": [
             {"number": "103", "title": "Definitions", "bare_text": "In this Sanhita, unless the context otherwise requires, the following definitions apply...", "plain_language": "This section defines key legal terms used throughout the BNS 2023 including concepts like 'act', 'voluntarily', 'person', and other fundamental legal definitions.", "is_bailable": True, "is_cognizable": False},
             {"number": "104", "title": "General Exceptions", "bare_text": "Nothing is an offence which is done by a person who, at the time of doing it, by reason of unsoundness of mind, is incapable of knowing the nature of the act, or that he is doing what is either wrong or contrary to law.", "plain_language": "A person cannot be punished for an act done while suffering from mental illness if they couldn't understand their actions or their wrongfulness.", "is_bailable": True, "is_cognizable": False},
@@ -19,69 +32,106 @@ BNS_SECTIONS = [
     }
 ]
 
+
+def load_json_file(path: Path) -> list[dict]:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except FileNotFoundError:
+        return []
+    if not isinstance(data, list):
+        raise ValueError(f"Expected JSON array in {path}, got {type(data).__name__}")
+    return data
+
+
+def load_seed_acts() -> list[dict]:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    loaded_acts: list[dict] = []
+
+    for filename in DATA_FILES:
+        path = DATA_DIR / filename
+        acts = load_json_file(path)
+        if acts:
+            print(f"🔁 Loaded {len(acts)} act(s) from {filename}")
+            loaded_acts.extend(acts)
+
+    if loaded_acts:
+        return loaded_acts
+
+    print("⚠️  No JSON seed files found in data/. Falling back to built-in demo BNS dataset.")
+    return DEFAULT_BNS_SECTIONS
+
+
 async def seed_bns_sections():
+    act_entries = load_seed_acts()
+    if not act_entries:
+        print("⚠️  No act entries available to seed.")
+        return
+
     async with AsyncSessionLocal() as db:
-        # Check if BNS 2023 already exists
-        result = await db.execute(
-            select(Act).where(Act.short_title == "Bharatiya Nyaya Sanhita 2023")
-        )
-        existing_acts = result.scalars().all()
-        
-        if existing_acts:
-            # Check if we have exactly 1 act with 8 sections
-            if len(existing_acts) == 1:
-                count = await db.scalar(
-                    select(func.count(Section.id)).where(Section.act_id == existing_acts[0].id)
-                )
-                if count == 8:
-                    print("✅ BNS data already properly seeded, skipping...")
-                    return
-            
-            # Delete duplicates — keep only first one
-            print(f"🗑️  Cleaning up {len(existing_acts)} duplicate acts...")
-            for act in existing_acts[1:]:
-                await db.delete(act)
-            await db.commit()
-        
-        # Now seed if needed
-        result = await db.execute(
-            select(Act).where(Act.short_title == "Bharatiya Nyaya Sanhita 2023")
-        )
-        existing_acts = result.scalars().all()
-        
-        if not existing_acts:
-            for act_data in BNS_SECTIONS:
-                # Create Act
+        for act_data in act_entries:
+            act_meta = act_data["act"]
+            short_title = act_meta["short_title"]
+
+            result = await db.execute(select(Act).where(Act.short_title == short_title))
+            existing_acts = result.scalars().all()
+
+            if existing_acts:
+                if len(existing_acts) > 1:
+                    print(f"🗑️  Cleaning up {len(existing_acts) - 1} duplicate acts for {short_title}...")
+                    for act in existing_acts[1:]:
+                        await db.delete(act)
+                    await db.commit()
+                act = existing_acts[0]
+            else:
                 act = Act(
-                    short_title=act_data["act"]["short_title"],
-                    full_title=act_data["act"]["full_title"],
-                    year=act_data["act"]["year"],
-                    act_type=act_data["act"]["act_type"],
-                    category=act_data["act"]["category"],
-                    is_active=True
+                    short_title=act_meta["short_title"],
+                    full_title=act_meta["full_title"],
+                    year=act_meta["year"],
+                    act_type=act_meta["act_type"],
+                    category=act_meta["category"],
+                    is_active=True,
                 )
                 db.add(act)
                 await db.flush()
-                
-                # Create Sections
-                for sec_data in act_data["sections"]:
-                    section = Section(
-                        act_id=act.id,
-                        section_number=sec_data["number"],
-                        section_title=sec_data["title"],
-                        bare_text=sec_data["bare_text"],
-                        plain_language=sec_data["plain_language"],
-                        is_bailable=sec_data.get("is_bailable"),
-                        is_cognizable=sec_data.get("is_cognizable"),
-                        punishment_summary=sec_data.get("punishment_summary"),
-                        is_active=True,
-                        is_amended=False
+
+            inserted = 0
+            for sec_data in act_data.get("sections", []):
+                existing_section = await db.execute(
+                    select(Section).where(
+                        Section.act_id == act.id,
+                        Section.section_number == sec_data["number"],
                     )
-                    db.add(section)
-                
+                )
+                if existing_section.scalar_one_or_none():
+                    continue
+
+                section = Section(
+                    act_id=act.id,
+                    section_number=sec_data["number"],
+                    section_title=sec_data.get("title"),
+                    bare_text=sec_data["bare_text"],
+                    plain_language=sec_data.get("plain_language"),
+                    is_bailable=sec_data.get("is_bailable"),
+                    is_cognizable=sec_data.get("is_cognizable"),
+                    punishment_summary=sec_data.get("punishment_summary"),
+                    max_punishment=sec_data.get("max_punishment"),
+                    min_punishment=sec_data.get("min_punishment"),
+                    fine_amount=sec_data.get("fine_amount"),
+                    relevant_court=sec_data.get("relevant_court"),
+                    limitation_period=sec_data.get("limitation_period"),
+                    is_active=True,
+                    is_amended=False,
+                )
+                db.add(section)
+                inserted += 1
+
+            if inserted:
                 await db.commit()
-            
-            print("✅ BNS Sections seeded successfully")
+                print(f"✅ Seeded {inserted} new section(s) for {short_title}")
+            else:
+                print(f"✅ {short_title} already has its seed sections")
+
 
 if __name__ == "__main__":
     asyncio.run(seed_bns_sections())
