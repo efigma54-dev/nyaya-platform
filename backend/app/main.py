@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -94,6 +96,10 @@ Instrumentator().instrument(app).expose(app)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# GZip compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -101,6 +107,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security headers middleware
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # CSP
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "  # Adjust based on frontend needs
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self'; "
+        "connect-src 'self' http://localhost:8000 http://localhost:6333; "  # Allow API/Qdrant
+        "object-src 'none'; "
+        "frame-src 'none'; "
+        "form-action 'self';"
+    )
+    
+    # HSTS (enable if using HTTPS)
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Other security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    return response
 
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
 app.include_router(sections_router, prefix="/sections", tags=["sections"])

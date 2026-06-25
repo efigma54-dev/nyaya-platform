@@ -12,6 +12,24 @@ Nyaya is a production-grade, AI-powered legal research and assistant platform de
 - **Secure Dashboard:** Firebase-authenticated personal space for saving queries and bookmarked sections.
 - **Analytics Hub:** Admin dashboard for monitoring system usage and legal query trends.
 
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    User[User] --> Frontend[Next.js Frontend]
+    
+    Frontend --> API[FastAPI Backend]
+    
+    API --> Redis[Redis<br/>Cache/Rate Limiter]
+    API --> PostgreSQL[(PostgreSQL<br/>Metadata/Users)]
+    API --> Qdrant[(Qdrant<br/>Vector Store)]
+    API --> Groq[Groq API<br/>LLM]
+    API --> Firebase[Firebase<br/>Auth]
+    
+    Prometheus[Prometheus<br/>Metrics] --> API
+    Grafana[Grafana<br/>Dashboards] --> Prometheus
+```
+
 ## 🛠️ Technology Stack
 
 - **Frontend:** Next.js (App Router), Tailwind CSS, Lucide Icons, Firebase SDK.
@@ -20,6 +38,13 @@ Nyaya is a production-grade, AI-powered legal research and assistant platform de
 - **Relational Database:** PostgreSQL (Metadata & User state).
 - **Caching/Queuing:** Redis (Session management & Rate limiting).
 - **AI Models:** Groq (LLM), HuggingFace `bge-m3` (Embeddings).
+- **Monitoring:** Prometheus, Grafana.
+
+## 📊 Validation & CI/CD
+
+- **Automated Validation:** Run `python scripts/validate.py` to generate validation reports.
+- **RAG Evaluation:** Run `python scripts/rag_eval.py` to benchmark retrieval quality.
+- **CI/CD:** GitHub Actions automatically runs linting, security scanning, and testing on every push.
 
 ## 📦 Deployment & Setup
 
