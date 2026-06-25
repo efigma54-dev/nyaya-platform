@@ -30,7 +30,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.rag.embedder import get_embedding_model
 from prometheus_fastapi_instrumentator import Instrumentator
-from app.rag.vector_store import ensure_collection
+from app.rag.vector_store import ensure_all_collections
 
 # Initialize Limiter
 limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
@@ -45,8 +45,8 @@ async def lifespan(app: FastAPI):
     app.state.qdrant = None
     app.state.model_ready = False
 
-    logger.info("Initializing vector store collection...")
-    await asyncio.to_thread(ensure_collection)
+    logger.info("Initializing vector store collections...")
+    await asyncio.to_thread(ensure_all_collections)
     
     # Load model in background without blocking startup
     async def load_model_background():

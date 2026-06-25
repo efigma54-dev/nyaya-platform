@@ -1,16 +1,11 @@
 """
 Embed all active sections into Qdrant (batch bge-m3).
-Used when /scripts volume is not mounted; prefer scripts/embed_sections.py in Docker.
 """
 
-from __future__ import annotations
-
 import asyncio
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from tqdm import tqdm
-
 from app.core.config import settings
 from app.models.legal import Act, Section
 from app.rag.embedder import embed_batch
@@ -37,7 +32,7 @@ def build_payload(section: Section, act: Act) -> dict:
         "section_id": section.id,
         "act_id": act.id,
         "act_title": act.short_title,
-        "category": act.category.value,
+        "category": getattr(act.category, 'value', str(act.category)) if act.category else None,
         "section_number": section.section_number,
         "section_title": section.section_title or "",
         "bare_text": (section.bare_text or "")[:500],
@@ -88,7 +83,7 @@ async def embed_all_sections() -> None:
             errors += len(batch)
             continue
 
-        for (section, act), vector in zip(batch, vectors, strict=True):
+        for (section, act), vector in zip(batch, vectors):
             try:
                 upsert_section(client, section.id, vector, build_payload(section, act))
                 embedded += 1

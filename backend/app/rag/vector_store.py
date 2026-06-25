@@ -1,5 +1,5 @@
 # backend/app/rag/vector_store.py
-# Qdrant collection for legal sections (sync client — scripts + API)
+# Qdrant collections for legal corpus (sections, judgments, rules, notifications)
 
 from __future__ import annotations
 
@@ -12,11 +12,18 @@ from qdrant_client.models import (
     MatchValue,
     PointStruct,
     VectorParams,
+    TextIndexParams,
+    TokenizerType,
 )
 
 from app.core.config import settings
 
-COLLECTION_NAME = "nyaya_sections"
+# Collection names
+COLLECTION_SECTIONS = "nyaya_sections"
+COLLECTION_JUDGMENTS = "nyaya_judgments"
+COLLECTION_RULES = "nyaya_rules"
+COLLECTION_NOTIFICATIONS = "nyaya_notifications"
+
 VECTOR_SIZE = 1024  # bge-m3
 
 
@@ -28,23 +35,43 @@ def get_qdrant_client() -> QdrantClient:
     )
 
 
-def ensure_collection() -> QdrantClient:
-    """Create Qdrant collection if it doesn't exist."""
+def ensure_collection(collection_name: str, vector_size: int = VECTOR_SIZE) -> QdrantClient:
+    """Create Qdrant collection if it doesn't exist, with keyword index for hybrid search."""
     client = get_qdrant_client()
     existing = [c.name for c in client.get_collections().collections]
 
-    if COLLECTION_NAME not in existing:
+    if collection_name not in existing:
         client.create_collection(
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
             vectors_config=VectorParams(
-                size=VECTOR_SIZE,
+                size=vector_size,
                 distance=Distance.COSINE,
             ),
         )
-        print(f"✅ Created Qdrant collection: {COLLECTION_NAME}")
+        # Create keyword index for BM25
+        client.create_payload_index(
+            collection_name=collection_name,
+            field_name="content",
+            field_schema=TextIndexParams(
+                type="text",
+                tokenizer=TokenizerType.WORD,
+                min_token_len=2,
+                max_token_len=20,
+            ),
+        )
+        print(f"✅ Created Qdrant collection: {collection_name} with keyword index")
     else:
-        print(f"⏭  Collection already exists: {COLLECTION_NAME}")
+        print(f"⏭  Collection already exists: {collection_name}")
 
+    return client
+
+
+def ensure_all_collections() -> QdrantClient:
+    """Ensure all required collections exist."""
+    client = ensure_collection(COLLECTION_SECTIONS)
+    ensure_collection(COLLECTION_JUDGMENTS)
+    ensure_collection(COLLECTION_RULES)
+    ensure_collection(COLLECTION_NOTIFICATIONS)
     return client
 
 
@@ -56,7 +83,7 @@ def upsert_section(
 ) -> None:
     """Insert or update a single section vector."""
     client.upsert(
-        collection_name=COLLECTION_NAME,
+        collection_name=COLLECTION_SECTIONS,
         points=[
             PointStruct(
                 id=section_id,
@@ -85,7 +112,7 @@ def insert_sections_to_qdrant(
             )
         )
 
-    client.upsert(collection_name=COLLECTION_NAME, points=points)
+    client.upsert(collection_name=COLLECTION_SECTIONS, points=points)
     return ids[0] if len(ids) == 1 else ids
 
 
@@ -144,7 +171,7 @@ def search_sections(
     query_filter = Filter(must=conditions) if conditions else None
 
     results = client.search(
-        collection_name=COLLECTION_NAME,
+        collection_name=COLLECTION_SECTIONS,
         query_vector=query_vector,
         limit=top_k,
         query_filter=query_filter,
@@ -156,6 +183,58 @@ def search_sections(
             "section_id": hit.id,
             "score": round(float(hit.score), 4),
             "payload": hit.payload or {},
+            "type": "section",
         }
         for hit in results
     ]
+
+
+def search_hybrid(
+    query_vector: list[float],
+    query_text: str,
+    top_k: int = 5,
+    act_categories: list[str] | None = None,
+    state: str | None = None,
+) -> list[dict]:
+    """
+    Hybrid search combining vector (semantic) and keyword (BM25) search.
+    Searches across sections, judgments, rules, and notifications.
+    """
+    client = get_qdrant_client()
+    all_results = []
+
+    # Search sections
+    conditions = []
+    if act_categories:
+        if len(act_categories) == 1:
+            conditions.append(FieldCondition(key="category", match=MatchValue(value=act_categories[0])))
+        else:
+            conditions.append(FieldCondition(key="category", match=MatchAny(any=act_categories)))
+    if state:
+        conditions.append(FieldCondition(key="state", match=MatchValue(value=state)))
+    section_filter = Filter(must=conditions) if conditions else None
+
+    # Vector search on sections
+    vector_results = client.search(
+        collection_name=COLLECTION_SECTIONS,
+        query_vector=query_vector,
+        limit=top_k,
+        query_filter=section_filter,
+        with_payload=True,
+    )
+    all_results.extend([
+        {
+            "id": hit.id,
+            "score": round(float(hit.score), 4),
+            "payload": hit.payload or {},
+            "type": "section",
+        }
+        for hit in vector_results
+    ])
+
+    # TODO: Add keyword search (BM25) when available in Qdrant Python client
+    # TODO: Add searches for judgments, rules, notifications
+
+    # Merge and rank results
+    all_results.sort(key=lambda x: x["score"], reverse=True)
+    return all_results[:top_k]
