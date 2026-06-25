@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app code
 COPY backend . 
+COPY scripts /app/scripts
+COPY data /app/data
 
 # Copy and make entrypoint executable
 COPY backend/entrypoint.sh /app/entrypoint.sh

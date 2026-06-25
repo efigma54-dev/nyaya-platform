@@ -54,7 +54,8 @@ services:
       - "8000:8000"
     volumes:
       - hf_cache:/root/.cache
-      - ./scripts:/scripts:ro
+      - ./scripts:/app/scripts:ro
+      - ./data:/app/data:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -6,16 +6,20 @@ import json
 import logging
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, root_validator
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.services.chat_service import answer_query
 from app.models.analytics import QueryLog
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
+
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +84,7 @@ async def save_session(
 
 @router.post("", response_model=ChatResponse)
 @router.post("/", response_model=ChatResponse, include_in_schema=False)
+@limiter.limit("30/minute")  # 30 requests per minute per IP
 async def chat(request: Request, body: ChatRequest, db: AsyncSession = Depends(get_db)):
     """
     Main chat endpoint.
@@ -145,6 +150,7 @@ async def chat(request: Request, body: ChatRequest, db: AsyncSession = Depends(g
 
 
 @router.post("/stream")
+@limiter.limit("30/minute")  # 30 requests per minute per IP
 async def chat_stream(request: Request, body: ChatRequest, db: AsyncSession = Depends(get_db)):
     """
     Streaming endpoint — returns Server-Sent Events.

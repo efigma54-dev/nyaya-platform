@@ -6,12 +6,15 @@ from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from qdrant_client import AsyncQdrantClient
+from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from fastapi.middleware.cors import CORSMiddleware
-from qdrant_client import AsyncQdrantClient
-from sqlalchemy import text
 
 from app.api.routes.chat import router as chat_router
 from app.api.routes.sections import router as sections_router
@@ -28,6 +31,9 @@ from app.core.database import AsyncSessionLocal
 from app.rag.embedder import get_embedding_model
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.rag.vector_store import ensure_collection
+
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
 
 # ─── Startup / Shutdown ───────────────────────────────────────
 @asynccontextmanager
@@ -83,6 +89,10 @@ app = FastAPI(
 
 # Initialize Prometheus
 Instrumentator().instrument(app).expose(app)
+
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

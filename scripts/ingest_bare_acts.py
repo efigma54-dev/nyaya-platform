@@ -169,13 +169,22 @@ def parse_bns_pdf(pdf_bytes: bytes) -> list[dict]:
             if text:
                 full_text += text + "\n"
 
+    # Accept headings where the title may start in Latin (English) OR Devanagari (Hindi).
+    # Example matches: "1. Title..." or "1. उपबंध ..."
     section_pattern = re.compile(
-        r"(?:^|\n)(\d{1,3}[A-Z]?)\.\s+([A-Z][^\n]{3,80})\n",
+        r"(?:^|\n)(\d{1,3}[A-Z]?)\.\s+([A-Z\u0900-\u097F][^\n]{3,120})\n",
         re.MULTILINE,
     )
 
     matches = list(section_pattern.finditer(full_text))
-    print(f"  🔍 Found {len(matches)} section headings")
+    # If the stricter heading pattern found nothing, try a looser numeric-heading pattern
+    # that captures lines starting with a number + dot followed by any non-empty title.
+    if not matches:
+        alt_pattern = re.compile(r"(?:^|\n)(\d{1,3}[A-Z]?)\.\s+([^\n]{1,120})\n", re.MULTILINE)
+        matches = list(alt_pattern.finditer(full_text))
+        print(f"  🔍 Found {len(matches)} section headings (loose numeric fallback)")
+    else:
+        print(f"  🔍 Found {len(matches)} section headings")
 
     for i, match in enumerate(matches):
         sec_num = match.group(1).strip()
