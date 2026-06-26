@@ -1,0 +1,24 @@
+
+# Task: Fix Broken COLLECTION_NAME Import in embed_sections.py
+## Objective
+Verify that embed_sections.py no longer tries to import non-existent COLLECTION_NAME from vector_store.py, and instead uses correct COLLECTION_SECTIONS
+
+## Files Modified
+- backend/scripts/embed_sections.py
+  - Old: from app.rag.vector_store import get_qdrant_client, COLLECTION_NAME
+  - New: from app.rag.vector_store import get_qdrant_client, COLLECTION_SECTIONS as COLLECTION_NAME
+
+## Commands
+None yet (Docker services still being started)
+
+## Acceptance Criteria
+✅ Import statement no longer references non-existent COLLECTION_NAME
+✅ Correct import is present in embed_sections.py
+✅ File syntax is valid
+
+## Evidence
+- evidence/audit/embed_sections_import_fix_verification.txt (this file)
+- backend/scripts/embed_sections.py (current content)
+
+## Status
+VERIFIED

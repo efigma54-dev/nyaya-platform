@@ -11,7 +11,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.legal import Section
 from sqlalchemy import select
 from app.rag.embedder import embed_text
-from app.rag.vector_store import get_qdrant_client, COLLECTION_NAME
+from app.rag.vector_store import get_qdrant_client, COLLECTION_SECTIONS as COLLECTION_NAME
 from qdrant_client.http.models import PointStruct
 
 async def embed_sections():

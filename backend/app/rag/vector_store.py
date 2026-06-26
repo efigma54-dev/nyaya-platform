@@ -14,6 +14,7 @@ from qdrant_client.models import (
     VectorParams,
     TextIndexParams,
     TokenizerType,
+    Query,
 )
 
 from app.core.config import settings
@@ -214,27 +215,67 @@ def search_hybrid(
         conditions.append(FieldCondition(key="state", match=MatchValue(value=state)))
     section_filter = Filter(must=conditions) if conditions else None
 
-    # Vector search on sections
+    # 1. Vector search on sections (semantic)
     vector_results = client.search(
         collection_name=COLLECTION_SECTIONS,
         query_vector=query_vector,
-        limit=top_k,
+        limit=top_k * 2,  # Retrieve more for later re-ranking
         query_filter=section_filter,
         with_payload=True,
     )
+    vector_dict = {hit.id: hit.score for hit in vector_results}
     all_results.extend([
         {
             "id": hit.id,
             "score": round(float(hit.score), 4),
             "payload": hit.payload or {},
             "type": "section",
+            "source": "vector"
         }
         for hit in vector_results
     ])
 
-    # TODO: Add keyword search (BM25) when available in Qdrant Python client
-    # TODO: Add searches for judgments, rules, notifications
+    # 2. Text/keyword search (BM25-style via Qdrant text index)
+    if query_text and len(query_text.strip()) > 0:
+        try:
+            text_results = client.query(
+                collection_name=COLLECTION_SECTIONS,
+                query=Query(
+                    text=query_text
+                ),
+                limit=top_k * 2,
+                filter=section_filter,
+                with_payload=True,
+            )
+            # Merge results, keeping max score for duplicates
+            for hit in text_results:
+                if hit.id not in vector_dict:
+                    all_results.append({
+                        "id": hit.id,
+                        "score": round(float(hit.score), 4),
+                        "payload": hit.payload or {},
+                        "type": "section",
+                        "source": "text"
+                    })
+                else:
+                    # For duplicates, take the maximum score from either vector or text search
+                    for res in all_results:
+                        if res["id"] == hit.id:
+                            res["score"] = max(res["score"], round(float(hit.score), 4))
+                            res["source"] = "hybrid"
+                            break
+        except Exception as e:
+            print(f"Text search failed (falling back to vector only): {e}")
 
     # Merge and rank results
     all_results.sort(key=lambda x: x["score"], reverse=True)
-    return all_results[:top_k]
+    # Deduplicate by id
+    seen = set()
+    unique_results = []
+    for res in all_results:
+        if res["id"] not in seen:
+            seen.add(res["id"])
+            unique_results.append(res)
+            if len(unique_results) >= top_k:
+                break
+    return unique_results

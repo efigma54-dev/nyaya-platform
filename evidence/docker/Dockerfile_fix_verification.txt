@@ -1,0 +1,32 @@
+
+# Task: Fix Dockerfile COPY Command
+## Objective
+Fix broken Dockerfile COPY commands that tried to copy non-existent root "scripts/" and ensure all code is under backend/
+
+## Files Modified
+- `backend/Dockerfile`: Removed lines `COPY scripts /app/scripts` and kept only valid copies (backend/requirements.txt, backend ., data/, backend/entrypoint.sh)
+
+## Verification
+### Current Dockerfile Content (Lines 17-23):
+```
+# Copy app code
+COPY backend . 
+COPY data /app/data
+
+# Copy and make entrypoint executable
+COPY backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+```
+
+## Acceptance Criteria
+✅ No invalid COPY commands (root scripts/data directories don't exist)
+✅ All app code copied from backend/
+✅ Entrypoint copied correctly
+✅ Dockerfile syntax is valid
+
+## Evidence Saved
+- evidence/docker/Dockerfile (current content)
+- evidence/docker/Dockerfile_fix_verification.txt (this file)
+
+## Status
+VERIFIED

@@ -16,7 +16,7 @@ from app.models.legal import Base
 from sqlalchemy import select, func, text, join
 from app.models.legal import Act, Section
 from app.rag.embedder import embed_text
-from app.rag.vector_store import insert_sections_to_qdrant, get_qdrant_client, COLLECTION_NAME
+from app.rag.vector_store import insert_sections_to_qdrant, get_qdrant_client, COLLECTION_SECTIONS as COLLECTION_NAME
 
 
 async def run_migrations():

@@ -15,7 +15,7 @@ try:
 except ImportError:
     langdetect_detect = None
 from app.rag.embedder import embed_text
-from app.rag.vector_store import search_sections
+from app.rag.vector_store import search_sections, search_hybrid
 from app.services.ai_router import route_and_call, decide_route
 from app.services.emergency import detect_emergency
 from app.core.database import AsyncSessionLocal
@@ -270,20 +270,42 @@ async def answer_query(
         if not direct_hit:
             query_vector = await asyncio.to_thread(embed_text, enhanced_query)
             retrieved = await asyncio.to_thread(
-                search_sections,
+                search_hybrid,
                 query_vector=query_vector,
+                query_text=enhanced_query,
                 top_k=search_k,
                 act_categories=rag_categories,
                 state=detected_state,
             )
+            # Convert to the format expected by the rest of the code
+            retrieved = [
+                {
+                    "section_id": res["id"],
+                    "score": res["score"],
+                    "payload": res["payload"],
+                    "type": res["type"]
+                }
+                for res in retrieved
+            ]
         if not retrieved and rag_categories:
             retrieved = await asyncio.to_thread(
-                search_sections,
+                search_hybrid,
                 query_vector=query_vector,
+                query_text=enhanced_query,
                 top_k=search_k,
                 act_categories=None,
                 state=detected_state,
             )
+            # Convert to the format expected by the rest of the code
+            retrieved = [
+                {
+                    "section_id": res["id"],
+                    "score": res["score"],
+                    "payload": res["payload"],
+                    "type": res["type"]
+                }
+                for res in retrieved
+            ]
         retrieved = prioritize_domestic_sections(query, retrieved)[:top_k]
         await enrich_retrieved_sections_with_act_title(retrieved)
 

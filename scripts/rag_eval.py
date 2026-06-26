@@ -177,7 +177,7 @@ class RAGEvaluator:
             status = "✅ PASS" if res.get("passed") else "❌ FAIL"
             md.append(f"\n### {res['question_id']}")
             md.append(f"- **Question:** {res['question']}")
-            md.append(f"- **Status:** {status")
+            md.append(f"- **Status:** {status}")
             if "error" not in res:
                 md.append(f"- **Latency:** {res['latency_ms']}ms")
                 md.append(f"- **Recall@1:** {res['recall@1']*100:.0f}%")

@@ -37,7 +37,7 @@ def build_embed_text(section: Section, act_title: str) -> str:
     return full_text[:1800]
 
 
-def build_payload(section: Section, act: Act) -> dict:
+def build_payload(section: Section, act: Act, full_text: str) -> dict:
     """Payload stored with each vector (for cards / citations without extra SQL)."""
     return {
         "section_id": section.id,
@@ -56,6 +56,7 @@ def build_payload(section: Section, act: Act) -> dict:
         "min_punishment": section.min_punishment or "",
         "relevant_court": section.relevant_court or "",
         "limitation_period": section.limitation_period or "",
+        "content": full_text,
     }
 
 
@@ -114,9 +115,9 @@ async def main() -> None:
             errors += len(batch)
             continue
 
-        for (section, act), vector in zip(batch, vectors, strict=True):
+        for (section, act), vector, text in zip(batch, vectors, texts, strict=True):
             try:
-                payload = build_payload(section, act)
+                payload = build_payload(section, act, text)
                 upsert_section(client, section.id, vector, payload)
                 embedded += 1
             except Exception as e:

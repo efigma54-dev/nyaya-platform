@@ -19,7 +19,7 @@ import httpx
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.legal import Section, Act
-from app.rag.vector_store import get_qdrant_client, COLLECTION_NAME
+from app.rag.vector_store import get_qdrant_client, COLLECTION_SECTIONS
 from sqlalchemy import func, select
 
 
@@ -48,23 +48,35 @@ class ValidationResult:
 
     def to_markdown(self):
         md = []
-        md.append("# Nyaya AI - Automated Validation Report")
+        md.append("# NYAYA AI - COMPLETE LOCAL VALIDATION REPORT")
         md.append(f"\n**Date:** {self.timestamp}")
-        md.append(f"**Overall Status:** {'✅ PASS' if self.overall_status == 'PASS' else '❌ FAIL'}")
+        md.append(f"**Environment:** Docker Compose (Local Development)")
+        md.append(f"**Status:** {'✅ ALL VALIDATION STEPS PASSED' if self.overall_status == 'PASS' else '❌ SOME VALIDATION STEPS FAILED'}")
         md.append("\n---\n")
-        
+
         for name, result in self.results.items():
-            status = "✅ PASS" if result["passed"] else "❌ FAIL"
-            md.append(f"## {name}")
-            md.append(f"**Status:** {status}")
+            status_emoji = "✅" if result["passed"] else "❌"
+            md.append(f"## {name} {status_emoji}")
             if result["metrics"]:
-                md.append("\n**Metrics:**")
+                md.append("\n| Metric | Value |")
+                md.append("|--------|-------|")
                 for key, value in result["metrics"].items():
-                    md.append(f"- **{key}:** {value}")
+                    md.append(f"| {key} | {value} |")
             if result["error"]:
                 md.append(f"\n**Error:** {result['error']}")
             md.append("\n---\n")
-        
+
+        md.append("\n## Corpus Statistics")
+        if "PostgreSQL Database" in self.results:
+            metrics = self.results["PostgreSQL Database"]["metrics"]
+            md.append(f"\n- **Total Acts:** {metrics.get('Total Acts', 'N/A')}")
+            md.append(f"\n- **Total Sections:** {metrics.get('Total Sections', 'N/A')}")
+            md.append(f"\n- **Active Sections:** {metrics.get('Active Sections', 'N/A')}")
+
+        if "Qdrant Vector Store" in self.results:
+            qdrant_metrics = self.results["Qdrant Vector Store"]["metrics"]
+            md.append(f"\n- **Vectors Indexed:** {qdrant_metrics.get('Points Count', 'N/A')}")
+
         return "\n".join(md)
 
 
@@ -74,13 +86,13 @@ async def check_database(result: ValidationResult):
         async with AsyncSessionLocal() as db:
             total_sections = await db.execute(select(func.count(Section.id)))
             total_sections = total_sections.scalar_one()
-            
+
             active_sections = await db.execute(select(func.count(Section.id)).where(Section.is_active == True))
             active_sections = active_sections.scalar_one()
-            
+
             total_acts = await db.execute(select(func.count(Act.id)))
             total_acts = total_acts.scalar_one()
-            
+
             result.add_check(
                 "PostgreSQL Database",
                 True,
@@ -100,10 +112,10 @@ async def check_qdrant(result: ValidationResult):
     print("\n[2/7] Checking Qdrant...")
     try:
         client = get_qdrant_client()
-        info = client.get_collection(COLLECTION_NAME)
+        info = client.get_collection(COLLECTION_SECTIONS)
         points_count = info.points_count
         vectors_count = info.vectors_count
-        
+
         result.add_check(
             "Qdrant Vector Store",
             True,
@@ -125,14 +137,14 @@ async def check_sync(result: ValidationResult):
         async with AsyncSessionLocal() as db:
             db_count = await db.execute(select(func.count(Section.id)).where(Section.is_active == True))
             db_count = db_count.scalar_one()
-        
+
         client = get_qdrant_client()
-        qdrant_info = client.get_collection(COLLECTION_NAME)
+        qdrant_info = client.get_collection(COLLECTION_SECTIONS)
         qdrant_count = qdrant_info.points_count
-        
+
         sync_status = db_count == qdrant_count
         sync_percent = (qdrant_count / db_count * 100) if db_count > 0 else 0
-        
+
         result.add_check(
             "Database ↔ Qdrant Sync",
             sync_status,
@@ -158,7 +170,7 @@ async def check_api_health(result: ValidationResult):
             response = await client.get("http://localhost:8000/health")
             response.raise_for_status()
             health_data = response.json()
-            
+
             result.add_check(
                 "API Health",
                 health_data.get("status") == "ok",
@@ -179,7 +191,7 @@ async def check_redis(result: ValidationResult):
         import redis
         r = redis.Redis(host="localhost", port=6379, decode_responses=True)
         pong = r.ping()
-        
+
         result.add_check(
             "Redis Cache",
             pong,
@@ -196,10 +208,10 @@ async def check_docker_containers(result: ValidationResult):
     print("\n[6/7] Checking Docker Containers...")
     try:
         import subprocess
-        
+
         containers = ["nyaya_postgres", "nyaya_redis", "nyaya_qdrant", "nyaya_api", "nyaya_frontend"]
         container_statuses = {}
-        
+
         for container in containers:
             try:
                 output = subprocess.check_output(
@@ -216,9 +228,9 @@ async def check_docker_containers(result: ValidationResult):
                     container_statuses[container] = output
                 except:
                     container_statuses[container] = "Not Found"
-        
+
         all_passed = all(status in ["healthy", "running"] for status in container_statuses.values())
-        
+
         result.add_check(
             "Docker Containers",
             all_passed,
@@ -237,7 +249,7 @@ async def check_rag_query(result: ValidationResult):
     print("\n[7/7] Checking RAG Query...")
     try:
         start_time = time.time()
-        
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 "http://localhost:8000/chat/",
@@ -245,12 +257,12 @@ async def check_rag_query(result: ValidationResult):
             )
             response.raise_for_status()
             chat_data = response.json()
-        
+
         latency = (time.time() - start_time) * 1000
-        
+
         has_answer = "answer" in chat_data and chat_data["answer"]
         has_sections = "sections" in chat_data and len(chat_data["sections"]) > 0
-        
+
         result.add_check(
             "RAG Query",
             has_answer and has_sections,
@@ -273,9 +285,9 @@ async def main():
     print("=" * 60)
     print("Nyaya AI - Automated Validation")
     print("=" * 60)
-    
+
     result = ValidationResult()
-    
+
     await check_database(result)
     await check_qdrant(result)
     await check_sync(result)
@@ -283,24 +295,24 @@ async def main():
     await check_redis(result)
     await check_docker_containers(result)
     await check_rag_query(result)
-    
+
     print("\n" + "=" * 60)
     print("Generating reports...")
-    
+
     # Save JSON report
     with open("validation.json", "w", encoding="utf-8") as f:
         json.dump(result.to_dict(), f, indent=2)
     print("✅ Generated validation.json")
-    
+
     # Save Markdown report
-    with open("VALIDATION.md", "w", encoding="utf-8") as f:
+    with open("LOCAL_VALIDATION_REPORT.md", "w", encoding="utf-8") as f:
         f.write(result.to_markdown())
-    print("✅ Generated VALIDATION.md")
-    
+    print("✅ Generated LOCAL_VALIDATION_REPORT.md")
+
     print("=" * 60)
     print(f"Overall Status: {result.overall_status}")
     print("=" * 60)
-    
+
     return 0 if result.overall_status == "PASS" else 1
 
 

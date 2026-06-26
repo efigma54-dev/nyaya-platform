@@ -48,3 +48,7 @@ langdetect==1.0.9
 # LlamaIndex HF extras pin conflicting `llama-index-core` versions on PyPI; sentence-transformers is enough here.
 sentence-transformers==3.3.1
 
+# Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
