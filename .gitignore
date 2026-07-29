@@ -42,3 +42,7 @@ coverage/
 .coverage.*
 evidence/raw/
 *.log
+# Generated evidence
+evidence/
+*.log
+LATEST.json
