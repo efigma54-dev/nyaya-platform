@@ -1,0 +1,103 @@
+== NYAYA EVIDENCE RUN (stdlib-only) @ 2026-07-28T12:13:14.139826+00:00 ==
+
+Import sanity (3 lightweight modules, no torch):
+  + nyaya.config.settings               1.781s
+  + nyaya.core.security                 0.572s
+  — nyaya.schemas                      FAIL ImportError: email-validator is not installed, run `pip install 'pydantic[email]'`
+
+Reading seed modules via restricted eval (supports K, None, list/dict literals):
+  !! seed exec FAIL on seed/acts.py: ImportError: __import__ not found
+  !! seed exec FAIL on seed/sections.py: ImportError: __import__ not found
+  !! seed exec FAIL on seed/ipc_bns_mappings.py: ImportError: __import__ not found
+  !! seed exec FAIL on seed/kg_relations.py: ImportError: __import__ not found
+  !! seed exec FAIL on seed/benchmark_questions.py: ImportError: __import__ not found
+  ACTS                  -> 0
+  SECTIONS              -> 0
+  IPC_BNS_MAPPINGS      -> 0
+  KG_EDGES              -> 0
+  BENCHMARK_QUESTIONS   -> 0
+
+Section schema hard-constraints:
+  missing fields: {}
+  checksum SHA-256 (bare_text -> checksum_sha256, n=20): PASS
+  Schema: FAIL
+
+Seed baseline counts:
+  Acts              0/10    matches-expected=False
+    Expected: ['IPC 1860', 'BNS 2023', 'CrPC 1973', 'BNSS 2023', 'Evidence Act 1872', 'BSA 2023', 'IT Act 2000', 'PWDVA 2005', 'PMLA 2002', 'SCST POA 1989']
+    Actual  : []
+  Sections          0/>=51 per-act={}
+  IPC-BNS pairs     0/>=17 (after bidirectional loader = 0)
+  KG edges          0/>=15
+  Benchmark Qs      0/>=25 difficulty={}
+  Baseline: FAIL
+
+Metric arithmetic smoke (synthetic ranked list):
+  R@5 =0.600 (exp 0.600) ✓
+  R@10=0.800 (exp 0.800) ✓
+  P@10=0.400 (exp 0.400) ✓
+  MRR =1.000 (exp 1.000) ✓
+  Hallucinated items (top 10): 5 → 1.0
+  Arithmetic exact: PASS
+
+Hybrid pipeline smoke: BM25 → Dense-injected → MinMax fuse (W_d=0.55 / W_b=0.45) → SeqMatcher rerank → Citation validator threshold 0.72 → 0.5× non-validated penalty
+  Query: murder death punishment
+  BM25 top5       : [[1, 4.51], [8, 2.85], [5, 1.64], [6, 1.6], [2, 1.56]]
+  Fused (D0.55+B0.45) top6: [[1, 1.0], [8, 0.809], [5, 0.321], [2, 0.282], [6, 0.159], [3, 0.019]]
+  Reranked top6   : [[1, 0.327], [8, 0.204], [5, 0.118], [6, 0.094], [2, 0.082], [3, 0.0]]
+  Final ranking (0.5× non-validated penalty):
+    #1 id=  1 sc=0.327 [V] cite_sim=0.463 Murder Punishment IPC 302★
+    #2 id=  8 sc=0.204 [V] cite_sim=0.298 BNS Section 108 Murder 2023★
+    #3 id=  5 sc=0.059 [ ] cite_sim=0.16 Rape 376 Punishment 
+    #4 id=  6 sc=0.047 [ ] cite_sim=0.12 Dowry Death 304B 
+    #5 id=  2 sc=0.041 [ ] cite_sim=0.118 Culpable Homicide Not Amounting to Murder IPC 304 
+    #6 id=  3 sc=0.000 [ ] cite_sim=0.0 Theft IPC 378 
+    #7 id=  4 sc=0.000 [ ] cite_sim=0.0 Husband Cruelty 498A Dowry 
+    #8 id=  7 sc=0.000 [ ] cite_sim=0.0 PMLA Section 3 Money Laundering 
+    #9 id=  9 sc=0.000 [ ] cite_sim=0.0 SCST Atrocities Section 3 
+    #10 id= 10 sc=0.000 [ ] cite_sim=0.0 IT Act Section 66 Hacking 
+  Rank 1 = Sec 1? ✓   (actual 1)
+  Rank 2 = Sec 8? ✓   (actual 8)
+  ≥ 1 validated?  ✓
+  Hybrid: PASS
+
+Frontend essential files presence:
+  ✓ frontend/package.json                                     652 bytes
+  ✓ frontend/tsconfig.json                                    573 bytes
+  ✓ frontend/next.config.js                                   423 bytes
+  ✓ frontend/tailwind.config.js                               753 bytes
+  ✓ frontend/postcss.config.js                                 83 bytes
+  ✓ frontend/app/layout.tsx                                 3,203 bytes
+  ✓ frontend/app/page.tsx                                   6,459 bytes
+  ✓ frontend/app/globals.css                                1,654 bytes
+  ✓ frontend/app/corpus/page.tsx                            5,698 bytes
+  ✓ frontend/app/search/page.tsx                              934 bytes
+  ✓ frontend/app/benchmark/page.tsx                         8,480 bytes
+  ✓ frontend/app/compare/page.tsx                          10,416 bytes
+  ✓ frontend/app/section/[id]/page.tsx                     11,397 bytes
+  ✓ frontend/components/SearchClient.tsx                   10,595 bytes
+  ✓ frontend/components/KGVisualization.tsx                 4,393 bytes
+  ✓ frontend/components/CitationHighlight.tsx               1,517 bytes
+  ✓ frontend/lib/api.ts                                     1,862 bytes
+  ✓ frontend/lib/types.ts                                   2,305 bytes
+  ✓ frontend/Dockerfile                                       653 bytes
+  ✓ backend/Dockerfile                                        877 bytes
+  ✓ docker-compose.yml                                      3,100 bytes
+  ✓ pyproject.toml                                          1,615 bytes
+  ✓ package.json                                              390 bytes
+  ✓ .gitignore                                                457 bytes
+  ✓ .env.example                                              521 bytes
+  ✓ README.md                                               1,082 bytes
+  Frontend+infra files: PASS
+
+OVERALL EVIDENCE GATE: ⚠️ FAIL
+{
+  "3_of_3_backend_modules_import_succeeded": false,
+  "seed_and_schema_hard_constraints": false,
+  "metric_arithmetic_exact_match": true,
+  "hybrid_rank_citation_expectations": true,
+  "all_frontend_and_infra_files_present": true
+}
+
+PASS_GATE=False
+elapsed_s=4.817

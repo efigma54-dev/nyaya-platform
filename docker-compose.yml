@@ -1,0 +1,113 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nyaya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nyaya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nyaya_dev_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-nyaya_platform}
+    ports:
+      - "5432:5432"
+    volumes:
+      - nyaya_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nyaya} -d ${POSTGRES_DB:-nyaya_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.7
+    container_name: nyaya-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - nyaya_qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nyaya-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nyaya-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-nyaya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nyaya_dev_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-nyaya_platform}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_GRPC_PORT: 6334
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-nyaya_sections_v1}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      APP_ENV: ${APP_ENV:-development}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-dev_secret_replace_me_32bytes_minimum}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://frontend:3000}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./evidence:/evidence:rw
+    command: >
+      sh -c "
+        python -m nyaya.cli db-init &&
+        python -m nyaya.cli seed --baseline &&
+        python -m nyaya.cli validate --evidence-dir /evidence &&
+        uvicorn nyaya.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nyaya-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
+      NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-development}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npm install && npm run dev"
+
+volumes:
+  nyaya_pg_data:
+  nyaya_qdrant_data:

@@ -1,0 +1,6 @@
+# Verification Framework Requirements
+# These are in addition to main backend/requirements.txt
+
+requests>=2.31.0          # HTTP client for API testing
+psutil>=5.9.0             # System and process utilities
+psycopg2-binary>=2.9.0    # PostgreSQL client
